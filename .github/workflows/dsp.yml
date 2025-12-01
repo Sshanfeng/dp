@@ -1,0 +1,68 @@
+name: Download Video and Create Release
+
+on:
+  workflow_dispatch: # 允许手动触发工作流
+
+jobs:
+  download_and_upload:
+    runs-on: ubuntu-latest # 使用 Linux 运行器
+
+    permissions:
+      contents: write # 授予 GITHUB_TOKEN 写入仓库内容的权限，以便创建 Release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4 # 检出你的仓库代码
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x' # 安装 Python (yt-dlp 需要)
+
+      - name: Install yt-dlp and FFmpeg
+        run: |
+          pip install yt-dlp # 安装 yt-dlp
+          sudo apt-get update && sudo apt-get install -y ffmpeg # 安装 FFmpeg (处理视频格式需要)
+
+      - name: Download Video
+        id: download_video # 给这个步骤一个ID，以便引用其输出
+        run: |
+          # **请将下面的 URL 替换为你要下载的视频链接**
+          # **请将 --output 参数改为你想要的视频文件名**
+          # `-f bestvideo+bestaudio --merge-output-format mp4` 通常用于下载最佳质量并合并为mp4
+          # `--no-warnings` 减少日志输出
+          # 获取视频标题作为文件名的一部分
+          VIDEO_TITLE=$(yt-dlp --print filename --output "%(title)s" "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+          echo "Downloading video: $VIDEO_TITLE"
+          yt-dlp "https://www.youtube.com/watch?v=dQw4w9WgXcQ" \
+                 --output "${VIDEO_TITLE}.mp4" \
+                 -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" \
+                 --merge-output-format mp4 \
+                 --no-warnings
+          
+          # 获取下载的文件名，以便后续步骤使用
+          DOWNLOADED_FILE=$(find . -maxdepth 1 -name "*.mp4" -print -quit) # 查找当前目录下第一个mp4文件
+          echo "Downloaded file path: $DOWNLOADED_FILE"
+          echo "video_path=$DOWNLOADED_FILE" >> $GITHUB_OUTPUT # 将文件路径作为步骤输出
+
+      - name: Create or Update Release
+        id: create_release # 给这个步骤一个ID，以便引用其输出
+        uses: softprops/action-gh-release@v1
+        with:
+          # 发布名称，可以包含日期和视频标题
+          tag_name: video-release-${{ github.run_number }}-${{ github.event.workflow_run.created_at || github.event.release.created_at || github.event.client_payload.timestamp || format('{0:%Y%m%d%H%M}', github.event.inputs.release_date || github.event.head_commit.timestamp || github.event.sender.login || now()) }}
+          name: "Video Download ${{ github.run_number }}"
+          body: "This release contains a video downloaded by GitHub Actions."
+          draft: false # 是否作为草稿发布
+          prerelease: false # 是否作为预发布
+          files: ${{ steps.download_video.outputs.video_path }} # 将下载的视频文件作为附件上传
+          
+          # 如果你想每次都创建一个新 release，不需要设置 target_commitish
+          # target_commitish: ${{ github.sha }} # 如果想指定发布到哪个 commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用 GitHub 提供的默认 token
+
+      - name: Verify Release Assets
+        run: |
+          echo "Release created/updated with ID: ${{ steps.create_release.outputs.id }}"
+          echo "Asset uploaded: ${{ steps.download_video.outputs.video_path }}"
