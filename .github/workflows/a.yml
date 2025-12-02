@@ -1,1 +1,32 @@
+name: Download Video and Create Release
 
+on:
+  workflow_dispatch: # 允许手动触发工作流
+
+jobs:
+  download_and_upload:
+    runs-on: ubuntu-latest # 使用 Linux 运行器
+
+    permissions:
+      contents: write # 授予 GITHUB_TOKEN 写入仓库内容的权限，以便创建 Release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4 # 检出你的仓库代码
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x' # 安装 Python (yt-dlp 需要)
+          
+      - name: Install yt-dlp and FFmpeg
+        run: |
+          pip install yt-dlp # 安装 yt-dlp
+          sudo apt-get update && sudo apt-get install -y ffmpeg # 安装 FFmpeg (处理视频格式需要)
+          
+      - name: Create Cookies File
+        # 这一步将存储在 Secret 中的 Cookies 文本内容写入到 cookies.txt 文件
+        run: echo "${{ secrets.BINGGAN }}" > cookies.txt
+        # 使用 shell: bash -e 是为了确保写入文件时不出错
+        shell: bash -e
+        
