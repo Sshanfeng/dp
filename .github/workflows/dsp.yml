@@ -42,7 +42,7 @@ jobs:
           VIDEO_TITLE=$(yt-dlp --print filename --output "%(title)s" "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
           echo "Downloading video: $VIDEO_TITLE"
           yt-dlp --cookies cookies.txt \
-                 --output "%(channel)s/%(title)s.%(ext)s" \
+                 --output "%(title)s.%(ext)s" \
                  -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" \
                  --merge-output-format mp4 \
                  --no-warnings \
