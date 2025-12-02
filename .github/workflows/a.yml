@@ -18,5 +18,5 @@ jobs:
         # 这一步将存储在 Secret 中的 Cookies 文本内容写入到 cookies.txt 文件
         run: echo "${{ secrets.BINGGAN }}" > cookies.txt
         # 使用 shell: bash -e 是为了确保写入文件时不出错
-        shell: bash -e
+        # shell: bash -e
         
