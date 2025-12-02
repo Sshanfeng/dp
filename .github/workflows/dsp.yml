@@ -62,8 +62,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           # 发布名称，可以包含日期和视频标题
-          tag_name: video-release-${{ github.run_number }}-${{ github.event.workflow_run.created_at || github.event.release.created_at || github.event.client_payload.timestamp || format('{0:%Y%m%d%H%M}', github.event.inputs.release_date || github.event.head_commit.timestamp || github.event.sender.login || now()) }}
-          name: "Video Download ${{ github.run_number }}"
+          tag_name: video-release-${{ github.run_number }}
           body: "This release contains a video downloaded by GitHub Actions."
           draft: false # 是否作为草稿发布
           prerelease: false # 是否作为预发布
