@@ -18,12 +18,18 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.x' # 安装 Python (yt-dlp 需要)
-
+          
       - name: Install yt-dlp and FFmpeg
         run: |
           pip install yt-dlp # 安装 yt-dlp
           sudo apt-get update && sudo apt-get install -y ffmpeg # 安装 FFmpeg (处理视频格式需要)
-
+          
+      - name: Create Cookies File
+        # 这一步将存储在 Secret 中的 Cookies 文本内容写入到 cookies.txt 文件
+        run: echo "${{ secrets.VIDEO_COOKIES }}" > cookies.txt
+        # 使用 shell: bash -e 是为了确保写入文件时不出错
+        shell: bash -e
+        
       - name: Download Video
         id: download_video # 给这个步骤一个ID，以便引用其输出
         run: |
@@ -32,13 +38,19 @@ jobs:
           # `-f bestvideo+bestaudio --merge-output-format mp4` 通常用于下载最佳质量并合并为mp4
           # `--no-warnings` 减少日志输出
           # 获取视频标题作为文件名的一部分
+          # 确保 --cookies 参数指向正确的文件
           VIDEO_TITLE=$(yt-dlp --print filename --output "%(title)s" "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
           echo "Downloading video: $VIDEO_TITLE"
-          yt-dlp "https://www.youtube.com/watch?v=dQw4w9WgXcQ" \
-                 --output "${VIDEO_TITLE}.mp4" \
+          yt-dlp --cookies cookies.txt \
+                 --output "%(channel)s/%(title)s.%(ext)s" \
                  -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" \
                  --merge-output-format mp4 \
-                 --no-warnings
+                 --no-warnings \
+                 "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+          
+          # 查找下载的文件名
+          DOWNLOADED_FILE=$(find . -maxdepth 1 -name "*.mp4" -print -quit)
+          echo "video_path=$DOWNLOADED_FILE" >> $GITHUB_OUTPUT
           
           # 获取下载的文件名，以便后续步骤使用
           DOWNLOADED_FILE=$(find . -maxdepth 1 -name "*.mp4" -print -quit) # 查找当前目录下第一个mp4文件
