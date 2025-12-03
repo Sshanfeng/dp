@@ -1,0 +1,61 @@
+name: 📺 Update Latest YouTube Videos
+
+on:
+  # 每天 UTC 时间 01:00 运行一次
+  # schedule:
+    # - cron: '0 1 * * *'
+  # 允许手动触发
+  workflow_dispatch:
+
+jobs:
+  update-videos:
+    runs-on: ubuntu-latest
+
+    # 授予 GITHUB_TOKEN 写入仓库内容的权限，以便提交文件
+    permissions:
+      contents: write 
+
+    steps:
+      # 1. 检出仓库代码
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. 获取并处理 YouTube 视频数据
+      - name: Fetch and Process YouTube Videos
+        env:
+          # 从 Secrets 中获取 API Key
+          YOUTUBE_API_KEY: ${{ secrets.YU }}
+          # 替换成您要查询的 YouTube 频道 ID
+          CHANNEL_ID: UC0BOI0kOV4Bt95zxoF7AHmQ # <<<< 替换为您的频道ID
+          MAX_RESULTS: 5 # 获取最新 5 个视频
+          OUTPUT_FILE: LATEST_VIDEOS.md # 输出文件名
+
+        run: |
+          # 构造 API URL
+          API_URL="https://www.googleapis.com/youtube/v3/search?key=$YOUTUBE_API_KEY&channelId=$CHANNEL_ID&part=snippet&order=date&maxResults=$MAX_RESULTS"
+
+          echo "---" > $OUTPUT_FILE
+          echo "## 🚀 最新 YouTube 视频" >> $OUTPUT_FILE
+          echo "---" >> $OUTPUT_FILE
+          
+          # 使用 curl 调用 API 并用 jq 解析 JSON
+          # 筛选出 'video' 类型的项，提取标题和 Video ID，并格式化为 Markdown 列表
+          curl -s "$API_URL" | jq -r '
+            .items[] | select(.id.kind == "youtube#video") | 
+            "- [**\(.snippet.title)**](https://www.youtube.com/watch?v=\(.id.videoId)) - \(.snippet.publishedAt | split("T")[0])"
+          ' >> $OUTPUT_FILE
+
+          echo "---" >> $OUTPUT_FILE
+          echo "最后更新时间: $(date '+%Y-%m-%d %H:%M:%S')" >> $OUTPUT_FILE
+          
+          echo "Successfully wrote video data to $OUTPUT_FILE"
+        # 确保 API Key 和 Channel ID 变量存在
+        # shell: bash -e
+
+      # 3. 提交更改后的文件
+      - name: Commit and Push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Auto: Update latest YouTube videos"
+          # 只提交生成的视频文件
+          file_pattern: 'LATEST_VIDEOS.md'
