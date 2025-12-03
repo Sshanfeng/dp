@@ -33,12 +33,7 @@ jobs:
       - name: Download Video
         id: download_video # 给这个步骤一个ID，以便引用其输出
         run: |
-          # **请将下面的 URL 替换为你要下载的视频链接**
-          # **请将 --output 参数改为你想要的视频文件名**
           # `-f bestvideo+bestaudio --merge-output-format mp4` 通常用于下载最佳质量并合并为mp4
-          # `--no-warnings` 减少日志输出
-          # 获取视频标题作为文件名的一部分
-          # 确保 --cookies 参数指向正确的文件
           VIDEO_TITLE=$(yt-dlp --print filename --output "%(title)s" "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
           echo "Downloading video: $VIDEO_TITLE"
           yt-dlp --cookies cookies.txt \
@@ -48,7 +43,6 @@ jobs:
                  --no-warnings \
                  "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
           
-          # 查找下载的文件名
           DOWNLOADED_FILE=$(find . -maxdepth 1 -name "*.mp4" -print -quit)
           echo "video_path=$DOWNLOADED_FILE" >> $GITHUB_OUTPUT
           
@@ -61,7 +55,6 @@ jobs:
         id: create_release # 给这个步骤一个ID，以便引用其输出
         uses: softprops/action-gh-release@v1
         with:
-          # 发布名称，可以包含日期和视频标题
           tag_name: video-release-${{ github.run_number }}
           body: "This release contains a video downloaded by GitHub Actions."
           draft: false # 是否作为草稿发布
